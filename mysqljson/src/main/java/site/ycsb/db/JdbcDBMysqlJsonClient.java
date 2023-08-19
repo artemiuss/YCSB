@@ -104,8 +104,9 @@ public class JdbcDBMysqlJsonClient extends DB {
 
   private Integer jdbcFetchSize;
   private static final String DEFAULT_PROP = "";
-  private ConcurrentMap<StatementType, PreparedStatement> cachedStatements;
-  
+  private ConcurrentMap < StatementType,
+  PreparedStatement > cachedStatements;
+
   /**
    * The statement type for the prepared statements.
    */
@@ -148,69 +149,60 @@ public class JdbcDBMysqlJsonClient extends DB {
       final int prime = 31;
       int result = 1;
       result = prime * result + numFields + 100 * shardIndex;
-      result = prime * result
-          + ((tableName == null) ? 0 : tableName.hashCode());
+      result = prime * result + ((tableName == null) ? 0 : tableName.hashCode());
       result = prime * result + ((type == null) ? 0 : type.getHashCode());
       return result;
     }
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj)
-        return true;
-      if (obj == null)
-        return false;
-      if (getClass() != obj.getClass())
-        return false;
+      if (this == obj) return true;
+      if (obj == null) return false;
+      if (getClass() != obj.getClass()) return false;
       StatementType other = (StatementType) obj;
-      if (numFields != other.numFields)
-        return false;
-      if (shardIndex != other.shardIndex)
-        return false;
+      if (numFields != other.numFields) return false;
+      if (shardIndex != other.shardIndex) return false;
       if (tableName == null) {
-        if (other.tableName != null)
-          return false;
-      } else if (!tableName.equals(other.tableName))
-        return false;
-      if (type != other.type)
-        return false;
+        if (other.tableName != null) return false;
+      } else if (!tableName.equals(other.tableName)) return false;
+      if (type != other.type) return false;
       return true;
     }
   }
 
-    /**
+  /**
      * For the given key, returns what shard contains data for this key
      *
      * @param key Data key to do operation on
      * @return Shard index
      */
-    private int getShardIndexByKey(String key) {
-       int ret = Math.abs(key.hashCode()) % conns.size();
-       //System.out.println(conns.size() + ": Shard instance for "+ key + " (hash  " + key.hashCode()+ " ) " + " is " + ret);
-       return ret;
-    }
+  private int getShardIndexByKey(String key) {
+    int ret = Math.abs(key.hashCode()) % conns.size();
+    //System.out.println(conns.size() + ": Shard instance for "+ key + " (hash  " + key.hashCode()+ " ) " + " is " + ret);
+    return ret;
+  }
 
-    /**
+  /**
      * For the given key, returns Connection object that holds connection
      * to the shard that contains this key
      *
      * @param key Data key to get information for
      * @return Connection object
      */
-    private Connection getShardConnectionByKey(String key) {
-        return conns.get(getShardIndexByKey(key));
-    }
+  private Connection getShardConnectionByKey(String key) {
+    return conns.get(getShardIndexByKey(key));
+  }
 
-    private void cleanupAllConnections() throws SQLException {
-       for(Connection conn: conns) {
-           conn.close();
-       }
+  private void cleanupAllConnections() throws SQLException {
+    for (Connection conn: conns) {
+      conn.close();
     }
-  
+  }
+
   /**
    * Initialize the database connection and set it up for sending requests to the database.
    * This must be called once per client.
-   * @throws  
+   * @throws
    */
   @Override
   public void init() throws DBException {
@@ -224,49 +216,50 @@ public class JdbcDBMysqlJsonClient extends DB {
     String passwd = props.getProperty(CONNECTION_PASSWD, DEFAULT_PROP);
     String driver = props.getProperty(DRIVER_CLASS);
 
-      String jdbcFetchSizeStr = props.getProperty(JDBC_FETCH_SIZE);
-          if (jdbcFetchSizeStr != null) {
-          try {
-              this.jdbcFetchSize = Integer.parseInt(jdbcFetchSizeStr);
-          } catch (NumberFormatException nfe) {
-              System.err.println("Invalid JDBC fetch size specified: " + jdbcFetchSizeStr);
-              throw new DBException(nfe);
-          }
-      }
-
-      String autoCommitStr = props.getProperty(JDBC_AUTO_COMMIT, Boolean.TRUE.toString());
-      Boolean autoCommit = Boolean.parseBoolean(autoCommitStr);
-
+    String jdbcFetchSizeStr = props.getProperty(JDBC_FETCH_SIZE);
+    if (jdbcFetchSizeStr != null) {
       try {
+        this.jdbcFetchSize = Integer.parseInt(jdbcFetchSizeStr);
+      } catch(NumberFormatException nfe) {
+        System.err.println("Invalid JDBC fetch size specified: " + jdbcFetchSizeStr);
+        throw new DBException(nfe);
+      }
+    }
+
+    String autoCommitStr = props.getProperty(JDBC_AUTO_COMMIT, Boolean.TRUE.toString());
+    Boolean autoCommit = Boolean.parseBoolean(autoCommitStr);
+
+    try {
       if (driver != null) {
         Class.forName(driver);
       }
-          int shardCount = 0;
-          conns = new ArrayList<Connection>(3);
-          for (String url: urls.split(",")) {
-              System.out.println("Adding shard node URL: " + url);
-            Connection conn = DriverManager.getConnection(url, user, passwd);
+      int shardCount = 0;
+      conns = new ArrayList < Connection > (3);
+      for (String url: urls.split(",")) {
+        System.out.println("Adding shard node URL: " + url);
+        Connection conn = DriverManager.getConnection(url, user, passwd);
 
-            // Since there is no explicit commit method in the DB interface, all
-            // operations should auto commit, except when explicitly told not to
-            // (this is necessary in cases such as for PostgreSQL when running a
-            // scan workload with fetchSize)
-            conn.setAutoCommit(autoCommit);
+        // Since there is no explicit commit method in the DB interface, all
+        // operations should auto commit, except when explicitly told not to
+        // (this is necessary in cases such as for PostgreSQL when running a
+        // scan workload with fetchSize)
+        conn.setAutoCommit(autoCommit);
 
-            shardCount++;
-            conns.add(conn);
-          }
+        shardCount++;
+        conns.add(conn);
+      }
 
-          System.out.println("Using " + shardCount + " shards");
+      System.out.println("Using " + shardCount + " shards");
 
-      cachedStatements = new ConcurrentHashMap<StatementType, PreparedStatement>();
-    } catch (ClassNotFoundException e) {
+      cachedStatements = new ConcurrentHashMap < StatementType,
+      PreparedStatement > ();
+    } catch(ClassNotFoundException e) {
       System.err.println("Error in initializing the JDBS driver: " + e);
       throw new DBException(e);
-    } catch (SQLException e) {
+    } catch(SQLException e) {
       System.err.println("Error in database operation: " + e);
       throw new DBException(e);
-    } catch (NumberFormatException e) {
+    } catch(NumberFormatException e) {
       System.err.println("Invalid value for fieldcount property. " + e);
       throw new DBException(e);
     }
@@ -277,7 +270,7 @@ public class JdbcDBMysqlJsonClient extends DB {
   public void cleanup() throws DBException {
     try {
       cleanupAllConnections();
-    } catch (SQLException e) {
+    } catch(SQLException e) {
       System.err.println("Error in closing the connection. " + e);
       throw new DBException(e);
     }
@@ -364,8 +357,7 @@ public class JdbcDBMysqlJsonClient extends DB {
   }
 
   @Override
-  public Status read(String tableName, String key, Set<String> fields,
-      Map<String, ByteIterator> result) {
+  public Status read(String tableName, String key, Set < String > fields, Map < String, ByteIterator > result) {
     try {
       StatementType type = new StatementType(StatementType.Type.READ, tableName, 1, getShardIndexByKey(key));
       PreparedStatement readStatement = cachedStatements.get(type);
@@ -379,15 +371,15 @@ public class JdbcDBMysqlJsonClient extends DB {
         return Status.NOT_FOUND;
       }
       if (result != null && fields != null) {
-        for (String field : fields) {
+        for (String field: fields) {
           String value = resultSet.getString(field);
           result.put(field, new StringByteIterator(value));
         }
       }
       resultSet.close();
       return Status.OK;
-    } catch (SQLException e) {
-        System.err.println("Error in processing read of table " + tableName + ": "+e);
+    } catch(SQLException e) {
+      System.err.println("Error in processing read of table " + tableName + ": "+e);
       return Status.ERROR;
     }
   }
@@ -416,7 +408,7 @@ public class JdbcDBMysqlJsonClient extends DB {
       }
       resultSet.close();
       return Status.OK;
-    } catch (SQLException e) {
+    } catch(SQLException e) {
       System.err.println("Error in processing scan of table: " + tableName + e);
       return Status.ERROR;
     }
@@ -456,6 +448,7 @@ public class JdbcDBMysqlJsonClient extends DB {
       if (insertStatement == null) {
         insertStatement = createAndCacheInsertStatement(type, key);
       }
+
       StringBuilder insert_jsonb = new StringBuilder("{");
 
       insert_jsonb.append(String.format("\"%s\": \"%s\"", PRIMARY_KEY, key));
@@ -463,7 +456,7 @@ public class JdbcDBMysqlJsonClient extends DB {
       int depth = 0;
       int index = 2;
 
-      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      for (Map.Entry < String, ByteIterator > entry: values.entrySet()) {
         String field = entry.getValue().toString();
         insert_jsonb.append(String.format(", \"%s%d\": \"%s\"", COLUMN_PREFIX, index++, StringEscapeUtils.escapeJava(field)));
       }
@@ -474,7 +467,7 @@ public class JdbcDBMysqlJsonClient extends DB {
       int result = insertStatement.executeUpdate();
       if (result == 1) return Status.OK;
       else return Status.UNEXPECTED_STATE;
-    } catch (SQLException e) {
+    } catch(SQLException e) {
       System.err.println("Error in processing insert to table: " + tableName + e);
       return Status.ERROR;
     }
@@ -492,7 +485,7 @@ public class JdbcDBMysqlJsonClient extends DB {
       int result = deleteStatement.executeUpdate();
       if (result == 1) return Status.OK;
       else return Status.UNEXPECTED_STATE;
-    } catch (SQLException e) {
+      } catch(SQLException e) {
       System.err.println("Error in processing delete to table: " + tableName + e);
       return Status.ERROR;
     }

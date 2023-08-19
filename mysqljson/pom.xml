@@ -36,7 +36,7 @@ LICENSE file.
       <version>${openjpa.jdbc.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.ycsb</groupId>
+      <groupId>site.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
