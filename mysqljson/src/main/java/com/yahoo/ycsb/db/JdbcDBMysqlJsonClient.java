@@ -1,33 +1,32 @@
 /**
- * Copyright (c) 2010 Yahoo! Inc. All rights reserved.                                                                                                                             
- *                                                                                                                                                                                 
- * Licensed under the Apache License, Version 2.0 (the "License"); you                                                                                                             
- * may not use this file except in compliance with the License. You                                                                                                                
- * may obtain a copy of the License at                                                                                                                                             
- *                                                                                                                                                                                 
- * http://www.apache.org/licenses/LICENSE-2.0                                                                                                                                      
- *                                                                                                                                                                                 
- * Unless required by applicable law or agreed to in writing, software                                                                                                             
- * distributed under the License is distributed on an "AS IS" BASIS,                                                                                                               
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or                                                                                                                 
- * implied. See the License for the specific language governing                                                                                                                    
- * permissions and limitations under the License. See accompanying                                                                                                                 
- * LICENSE file. 
+ * Copyright (c) 2010 - 2016 Yahoo! Inc., 2016, 2019 YCSB contributors. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
  */
+package site.ycsb.db;
 
-package com.yahoo.ycsb.db;
-
-import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.DBException;
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.Status;
-import com.yahoo.ycsb.StringByteIterator;
+import site.ycsb.DB;
+import site.ycsb.DBException;
+import site.ycsb.ByteIterator;
+import site.ycsb.Status;
+import site.ycsb.StringByteIterator;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.json.JSONObject;
 
-import java.sql.*;
-import java.util.*;
+import java.sql. * ;
+import java.util. * ;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.lang.System;
@@ -55,9 +54,51 @@ import java.lang.System;
  * @author sudipto
  *
  */
-public class JdbcDBMysqlJsonClient extends DB implements JdbcDBClientConstants {
-	
-  private ArrayList<Connection> conns;
+public class JdbcDBMysqlJsonClient extends DB {
+
+  /** The class to use as the jdbc driver. */
+  public static final String DRIVER_CLASS = "db.driver";
+
+  /** The URL to connect to the database. */
+  public static final String CONNECTION_URL = "db.url";
+
+  /** The user name to use to connect to the database. */
+  public static final String CONNECTION_USER = "db.user";
+
+  /** The password to use for establishing the connection. */
+  public static final String CONNECTION_PASSWD = "db.passwd";
+
+  /** The batch size for batched inserts. Set to >0 to use batching */
+  public static final String DB_BATCH_SIZE = "db.batchsize";
+
+  /** The JDBC fetch size hinted to the driver. */
+  public static final String JDBC_FETCH_SIZE = "jdbc.fetchsize";
+
+  /** The JDBC connection auto-commit property for the driver. */
+  public static final String JDBC_AUTO_COMMIT = "jdbc.autocommit";
+
+  public static final String JDBC_BATCH_UPDATES = "jdbc.batchupdateapi";
+
+  /** The name of the property for the number of fields in a record. */
+  public static final String FIELD_COUNT_PROPERTY = "fieldcount";
+
+  /** Default number of fields in a record. */
+  public static final String FIELD_COUNT_PROPERTY_DEFAULT = "10";
+
+  /** Representing a NULL value. */
+  public static final String NULL_VALUE = "NULL";
+
+  /** The primary key in the user table. */
+  public static final String PRIMARY_KEY = "YCSB_KEY";
+
+  /** The field name prefix in the table. */
+  public static final String COLUMN_PREFIX = "FIELD";
+
+  /** SQL:2008 standard: FETCH FIRST n ROWS after the ORDER BY. */
+  private boolean sqlansiScans = false;
+  /** SQL Server before 2012: TOP n after the SELECT. */
+  private boolean sqlserverScans = false;
+  private ArrayList < Connection > conns;
   private boolean initialized = false;
   private Properties props;
 
@@ -69,7 +110,7 @@ public class JdbcDBMysqlJsonClient extends DB implements JdbcDBClientConstants {
    * The statement type for the prepared statements.
    */
   private static class StatementType {
-    
+
     enum Type {
       INSERT(1),
       DELETE(2),
@@ -81,7 +122,7 @@ public class JdbcDBMysqlJsonClient extends DB implements JdbcDBClientConstants {
       private Type(int type) {
         internalType = type;
       }
-      
+
       int getHashCode() {
         final int prime = 31;
         int result = 1;
@@ -89,12 +130,12 @@ public class JdbcDBMysqlJsonClient extends DB implements JdbcDBClientConstants {
         return result;
       }
     }
-    
+
     Type type;
     int shardIndex;
     int numFields;
     String tableName;
-    
+
     StatementType(Type type, String tableName, int numFields, int _shardIndex) {
       this.type = type;
       this.tableName = tableName;
@@ -231,7 +272,7 @@ public class JdbcDBMysqlJsonClient extends DB implements JdbcDBClientConstants {
     }
     initialized = true;
   }
-  
+
   @Override
   public void cleanup() throws DBException {
     try {
@@ -241,7 +282,7 @@ public class JdbcDBMysqlJsonClient extends DB implements JdbcDBClientConstants {
       throw new DBException(e);
     }
   }
-  
+
   private PreparedStatement createAndCacheInsertStatement(StatementType insertType, String key)
   throws SQLException {
     StringBuilder insert = new StringBuilder("INSERT INTO ");
@@ -252,7 +293,7 @@ public class JdbcDBMysqlJsonClient extends DB implements JdbcDBClientConstants {
     if (stmt == null) return insertStatement;
     else return stmt;
   }
-  
+
   private PreparedStatement createAndCacheReadStatement(StatementType readType, String key)
   throws SQLException {
     StringBuilder read = new StringBuilder();
@@ -268,7 +309,7 @@ public class JdbcDBMysqlJsonClient extends DB implements JdbcDBClientConstants {
     if (stmt == null) return readStatement;
     else return stmt;
   }
-  
+
   private PreparedStatement createAndCacheDeleteStatement(StatementType deleteType, String key)
   throws SQLException {
     StringBuilder delete = new StringBuilder("DELETE FROM ");
@@ -281,7 +322,7 @@ public class JdbcDBMysqlJsonClient extends DB implements JdbcDBClientConstants {
     if (stmt == null) return deleteStatement;
     else return stmt;
   }
-  
+
   private PreparedStatement createAndCacheUpdateStatement(StatementType updateType, String key)
   throws SQLException {
     StringBuilder update = new StringBuilder("UPDATE ");
@@ -304,7 +345,7 @@ public class JdbcDBMysqlJsonClient extends DB implements JdbcDBClientConstants {
     if (stmt == null) return insertStatement;
     else return stmt;
   }
-  
+
   private PreparedStatement createAndCacheScanStatement(StatementType scanType, String key)
   throws SQLException {
     StringBuilder select = new StringBuilder("SELECT * FROM ");
