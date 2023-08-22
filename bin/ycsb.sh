@@ -121,10 +121,10 @@ if $CYGWIN; then
 fi
 
 # Check if source checkout, or release distribution
-#DISTRIBUTION=true
-#if [ -r "$YCSB_HOME/pom.xml" ]; then
-#  DISTRIBUTION=false;
-#fi
+DISTRIBUTION=true
+if [ -r "$YCSB_HOME/pom.xml" ]; then
+  DISTRIBUTION=false;
+fi
 
 # Add Top level conf to classpath
 if [ -z "$CLASSPATH" ] ; then
